@@ -1,0 +1,113 @@
+#ifndef EDITOR_HPP
+#define EDITOR_HPP
+
+#include <ncurses.h>
+
+#include <vector>
+#include <cstdint>
+#include <map>
+
+
+#include "input.hpp"
+#include "buffer.hpp"
+
+
+
+namespace Color {
+    static constexpr int NUM_DARK_SHADES = 2;
+    enum EditorColor : int {
+        BACKGROUND = 0,
+        WHITE,   DARK_WHITE_0,    DARK_WHITE_1,
+        BEIGE,   DARK_BEIGE_0,    DARK_BEIGE_1,
+        PINK,    DARK_PINK_0,     DARK_PINK_1,
+        RED,     DARK_RED_0,      DARK_RED_1,
+        ORANGE,  DARK_ORANGE_0,   DARK_ORANGE_1,
+        YELLOW,  DARK_YELLOW_0,   DARK_YELLOW_1,
+        LIME,    DARK_LIME_0,     DARK_LIME_1,
+        GREEN,   DARK_GREEN_0,    DARK_GREEN_1,
+        CYAN,    DARK_CYAN_0,     DARK_CYAN_1,
+        BLUE,    DARK_BLUE_0,     DARK_BLUE_1,
+        PURPLE,  DARK_PURPLE_0,   DARK_PURPLE_1,
+        MAGENTA, DARK_MAGENTA_0,  DARK_MAGENTA_1,
+        CURSOR,
+        NUM_COLORS
+    };
+}
+
+
+struct StyleSettings {
+    cchar_t TL_corner_ch;  // Top Left
+    cchar_t TR_corner_ch;  // Top Right
+    cchar_t BL_corner_ch;  // Bottom Left
+    cchar_t BR_corner_ch;  // Bottom Right
+    cchar_t T_line_ch;
+    cchar_t R_line_ch;
+    cchar_t L_line_ch;
+    cchar_t B_line_ch;
+};
+
+
+struct Settings {
+    StyleSettings style;
+
+    // << Syntax and color settings go here >> 
+
+};
+
+
+
+
+
+class Editor {
+
+    public:
+        bool running;
+
+        void init();
+        void init_style();
+        void map_input_keys();
+       
+
+        // NOTE: add_keymap function expects that the <CTRL> modifier starts at first index.
+        void add_keymap(BufferMode mode, const KeyCommand& kc, const std::string& str);
+        std::map<int, KeyCommand> keymap [BufferMode::NUM_MODES];
+        
+
+
+        void set_color(int color);
+        void reset_color();
+
+        // Update size and position of all open buffers.
+        void update_buffer_areas();
+        
+        int term_width;
+        int term_height;
+
+        Settings settn;
+        
+        /*REMOVE*/int last_key_input;
+
+    // ---- Buffer Control ----------------------
+
+        Buffer*  add_buffer (const char* name);
+        void     del_buffer (Buffer* buf);
+
+        std::vector<Buffer> buffers;
+        Buffer*             buf; // Current buffer pointer to specific index in 'buffers' array
+
+        
+    
+    private:
+
+        int m_color_pair_num;
+        void m_init_all_colors();
+        void m_init_color(int color_num, int r, int g, int b, int bg_color_num = Color::BACKGROUND);
+        int  m_key_fromstr(const std::string& str);
+
+
+};
+
+
+
+
+#endif
