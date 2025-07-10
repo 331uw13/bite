@@ -6,6 +6,7 @@
 #include <cstdint>
 
 
+
 struct Cursor {
     int64_t x;
     int64_t y;
@@ -112,7 +113,9 @@ class Buffer {
         void add_line(int64_t y, const std::string& str); // str can be empty.
         void del_line(int64_t y);
         bool add_tabs(const Cursor& cur, int num);
-        
+       
+        // Returns the mode string size.
+        size_t get_mode_str(char* buf, size_t buf_size);
 
         // ---- Input Related ----
 
@@ -124,13 +127,15 @@ class Buffer {
            
 
     private:
-
+        
         bool m_mem_freed;
-
         void m_draw_borders(Editor* bite, int base_x, int base_y);
         bool m_clear_last_row;
 
         inline int m_max_row();
+
+        void m_draw_title_info(Editor* bite, int x, int y, const char* info, int color);
+
 
         // The screen buffer (scrnbuf) is responsible to
         // update lines which width is smaller than in previous update.

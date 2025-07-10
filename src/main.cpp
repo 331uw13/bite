@@ -36,23 +36,39 @@ void main_loop(Editor* bite) {
         bite->buf->draw(bite);
         
         int input = getch();
-        InputHandler::handle_all_mode(bite, bite->buf, input);
-
+        
+        InputHandler::handle_shared(bite, bite->buf, input);
+        
+        switch(bite->buf->mode) {
+            case BufferMode::NULLMODE:
+                InputHandler::handle_null_mode(bite, bite->buf, input);
+                break;
+            
+            case BufferMode::INSERT:
+                InputHandler::handle_insert_mode(bite, bite->buf, input);
+                break;
+            
+            case BufferMode::SELECT:
+                InputHandler::handle_select_mode(bite, bite->buf, input);
+                break;                               
+        }
 
         
+
         refresh();
     }
 }
 
 
 int main(int argc, char** argv) {
+   
+    assign_logfile("bite.log");
 
     // By default there is not unicode support with POSIX locale.
     // so it can be enabled with selecting the user locale setting.
     setlocale(LC_ALL, "");
 
-
-    // Initialize NCurses.
+    // Initialize ncurses.
     //
     initscr();
     raw();     // Do not generate any interupt signal.
@@ -82,13 +98,14 @@ int main(int argc, char** argv) {
     for(size_t i = 0; i < bite.buffers.size(); i++) {
         bite.buffers[i].free_memory();
     }
+    
+    close_logfile();
    
     // TODO: maybe its a good idea to have signal handler
     //       because if crash happens user doesnt go into "broken" terminal state
     //       if ncurses doesnt quit properly.
     curs_set(1); // Enable cursor.
     endwin();
-
 
     return 0;
 }

@@ -1,9 +1,18 @@
 #include <ncurses.h>
 #include <stdlib.h>
+#include <cstring>
 
 #include "buffer.hpp"
 #include "editor.hpp"
 #include "util.hpp"
+
+
+
+static const char* BUFFER_MODES_STR[] = {
+    "NULLMODE",
+    "INSERT",
+    "SELECT"
+};
 
 
 
@@ -91,17 +100,36 @@ void Buffer::m_draw_borders(Editor* bite, int base_x, int base_y) {
 
 
 
-    const int name_w = this->name.size()+1;
-    const int name_xoff = this->width - name_w - 1;
+    // Draw buffer info.
 
-    mvaddch(base_y, base_x + name_xoff + 1, '[');
-    mvaddch(base_y, base_x + name_xoff + name_w+1, ']');
+    int info_x = base_x + this->width - this->name.size() - 1;
 
-    bite->set_color(Color::DARK_CYAN_0);
-    mvprintw(base_y, base_x+2 + name_xoff, this->name.c_str());
+    m_draw_title_info(bite, info_x, this->pos_y, this->name.c_str(),
+            Color::DARK_CYAN_0);
 
+    if(this->mode != BufferMode::NULLMODE) {
+        char mode_str[16] = { 0 };
+        info_x -= get_mode_str(mode_str, 16) + 3;
+
+        m_draw_title_info(bite, info_x, this->pos_y, mode_str, Color::DARK_PINK_0);
+
+    }
 }
         
+void Buffer::m_draw_title_info(Editor* bite, int x, int y, const char* info, int color) {
+
+    const size_t info_size = strlen(info);
+   
+    bite->set_color(Color::DARK_CYAN_1);
+
+    mvaddch(y, x, '[');
+    mvaddch(y, x + info_size+1, ']');
+
+    bite->set_color(color);
+    mvprintw(y, x+1, info);
+
+}
+
 
 void Buffer::draw(Editor* bite) {
     
@@ -181,8 +209,24 @@ void Buffer::draw(Editor* bite) {
 
     m_prev_lastln_digits = lastln_digits;
 
-    U::draw_info("Key: %i      ", bite->last_key_input);
+    //U::draw_info("Key: %i", bite->last_key_input);
 
+}
+        
+size_t Buffer::get_mode_str(char* outbuf, size_t outbuf_size) {
+    const char* mode_str = BUFFER_MODES_STR[this->mode];
+    const size_t mode_str_size = strlen(mode_str);
+    
+    if(outbuf_size < mode_str_size) {
+        log_print(ERROR, 
+                "'outbuf' size is too small for \"%s\","
+                " 16 bytes should always be enough.", mode_str);
+        return 0;
+    }
+
+    memmove(outbuf, mode_str, mode_str_size);
+
+    return mode_str_size;
 }
 
 void Buffer::checkup_scrnbuf() {
@@ -243,7 +287,6 @@ void Buffer::mov_cursor_to(int64_t x, int64_t y) {
     this->cursor.y = U::iclamp64(this->cursor.y, 0, data.size()-1);
     Line* ln = getln(this->cursor.y);
     
-    this->cursor.x = U::iclamp64(this->cursor.x, 0, ln->str.size());
     this->cursor.chr = ln->str[this->cursor.x];
 
     if(!U::is_valid_char(this->cursor.chr)) {

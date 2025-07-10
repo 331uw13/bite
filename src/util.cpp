@@ -30,7 +30,9 @@ void U::draw_info(const char* info_fmt, ...) {
     char buffer[512] = { 0 };
     vsnprintf(buffer, 512, info_fmt, args);
 
-    mvprintw(rows-1, 0, buffer);
+    move(rows-1, 0);
+    clrtoeol();
+    printw(buffer);
 
     va_end(args);
 }

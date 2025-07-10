@@ -35,8 +35,6 @@ void Editor::init_style() {
 
 
 int Editor::m_key_fromstr(const std::string& str) {
-    int k = 0;
-    char char_key = 0;
     
     size_t ctrl_pos = str.find("<CTRL>");
     bool has_ctrl = (ctrl_pos != std::string::npos && ctrl_pos == 0);
@@ -46,12 +44,61 @@ int Editor::m_key_fromstr(const std::string& str) {
         start_index = 6; // length of "<CTRL>"
     }
 
+    // Read the input key it may be special one like arrow keys or backspace etc..
+    char buffer[32+1] = { 0 };
+    int buf_i = 0; 
+
     for(size_t i = start_index; i < str.size(); i++) {
         char c = str[i];
-        if(c == 0x20) { continue; }
-        if(U::is_valid_char(c)) {
-            char_key = c;
-            break;
+        if(c == 0x20) {
+            continue;
+        }
+
+        if(!U::is_valid_char(c)) { // Allow only printable characters.
+            continue;
+        }
+
+        buffer[buf_i] = c;
+        buf_i++;
+        if(buf_i >= 32) {
+            log_print(ERROR, "The input 'str' is too large. Probably caused by invalid input to add_keymap function");
+            return 0;
+        }
+    }
+
+    int result = 0;
+
+    if(buf_i == 1) { 
+        /* Single character input */
+        result = (int)buffer[0];
+    }
+    else {
+        if(strcmp(buffer, "<LEFT>") == 0) {
+            result = KEY_LEFT;
+        }
+        else
+        if(strcmp(buffer, "<RIGHT>") == 0) {
+            result = KEY_RIGHT;
+        }
+        else
+        if(strcmp(buffer, "<UP>") == 0) {
+            result = KEY_UP;
+        }
+        else    
+        if(strcmp(buffer, "<DOWN>") == 0) {
+            result = KEY_DOWN;
+        }
+        else    
+        if(strcmp(buffer, "<BACKSPACE>") == 0) {
+            result = KEY_BACKSPACE;
+        }
+        else    
+        if(strcmp(buffer, "<ENTER>") == 0) {
+            result = '\n';
+        }
+        else    
+        if(strcmp(buffer, "<TAB>") == 0) {
+            result = '\t';
         }
     }
 
@@ -61,12 +108,11 @@ int Editor::m_key_fromstr(const std::string& str) {
     // so that means 1100001 = 'a'
     // and when control key is down 'a' becomes 0000001
 
-    k = (int)char_key;
     if(has_ctrl) {
-        k &= 0x1F; // 0011111
+        result &= 0x1F; // 0011111
     }
 
-    return k;
+    return result;
 }
 
 
@@ -75,8 +121,19 @@ void Editor::add_keymap(BufferMode mode, const KeyCommand& kc, const std::string
 }
 
 void Editor::map_input_keys() {
+    
+    add_keymap(BufferMode::INSERT, (KeyCommand){ EditorKey::K_ENTER },     "<ENTER>");
+    add_keymap(BufferMode::INSERT, (KeyCommand){ EditorKey::K_BACKSPACE }, "<BACKSPACE>");
+    add_keymap(BufferMode::INSERT, (KeyCommand){ EditorKey::K_TAB },       "<TAB>");
 
-    add_keymap(BufferMode::INSERT, (KeyCommand){ EditorKey::K_LEFT }, "<CTRL> L");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_LEFT },      "<LEFT>");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_RIGHT },     "<RIGHT>");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_UP },        "<UP>");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_DOWN },      "<DOWN>");
+
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_NULLMODE },  "<CTRL> x");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_INSERTMODE },"<CTRL> l");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_SELECTMODE },"<CTRL> s");
 
 }
 
