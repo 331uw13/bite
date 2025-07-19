@@ -12,8 +12,11 @@
 #include "buffer.hpp"
 #include "log.hpp"
 #include "color.hpp"
+#include "fileio.hpp"
 
-struct StyleSettings {
+
+
+struct StyleSettings {     // Buffer border style unicode.
     cchar_t TL_corner_ch;  // Top Left
     cchar_t TR_corner_ch;  // Top Right
     cchar_t BL_corner_ch;  // Bottom Left

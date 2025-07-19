@@ -3,7 +3,6 @@
 
 
 
-
 namespace Color {
     static constexpr int NUM_DARK_SHADES = 2;
     enum EditorColor : int {

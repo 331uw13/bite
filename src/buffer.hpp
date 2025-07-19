@@ -4,7 +4,9 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <span>
 
+#include "selectreg_act.hpp"
 
 
 struct Cursor {
@@ -32,15 +34,32 @@ struct Cursor {
 };
 
 
-struct Select {
-    Cursor start;
-    Cursor end;
+struct SelectReg {
+    int64_t startX;
+    int64_t startY;
+    int64_t endX;
+    int64_t endY;
 
-    Select(const Cursor& cur) {
-        start = cur;
-        end = cur;
+    SelectReg() {
+        endX = startX = 0;
+        endY = startY = 0;
+    }
+
+    SelectReg(const Cursor& cur) {
+        endX = startX = cur.x;
+        endY = startY = cur.y;
+    }
+
+    SelectReg(int64_t sX, int64_t sY,
+              int64_t eX, int64_t eY
+    ){
+        startX = sX;
+        startY = sY;
+        endX = eX;
+        endY = eY;
     }
 };
+
 
 
 // TODO: Rename to BufferLine
@@ -48,7 +67,6 @@ struct Line {
     std::string  str;
     uint8_t      force_update; // Clear the whole line before drawing.
 };
-
 
 struct ScreenLine {
     uint64_t      length;
@@ -75,35 +93,44 @@ class Buffer {
         ~Buffer();
         void free_memory();
 
-        BufferMode mode;
+        void draw(Editor* bite);
 
-        uint64_t index; // Index in Editor::buffers array.
 
-        uint16_t paddn_x;  // Number of empty space at start of X and Y
-        uint16_t paddn_y;  //
-    
+        uint64_t index;   // Index in Editor::buffers array.
+        uint16_t paddn_x; // Number of empty space at start of X and Y
+        uint16_t paddn_y; //
         int pos_x;
         int pos_y;
         int width;
         int height;
 
+        int last_draw_base_x;
+        int last_draw_base_y;
+
+
         uint8_t tab_width;
 
         std::vector<Line> data;
         std::string name;
-        
-        void draw(Editor* bite);
-        void checkup_scrnbuf();
 
-        // ---- General Utilities ----
+        // Copies the private select region
+        // and makes sure the start and end position 
+        // is in correct order.
+        // Also start and end positions are clamped.
+        SelectReg get_selected_reg();
+      
+        // See 'selectreg_act.hpp' for more info about this:
+        void selectreg_action(void(*act_callback)(Buffer* buf, const std::string&, Int64x2));
+        
+        
+        void checkup_scrnbuf();
+        void clamp_cursor_xy();
+
 
         Line*        getln(int64_t y);
         std::string* getlnstr(int64_t y);
 
-        void clamp_cursor_xy();
 
-
-        // ---- Data Control ----
         void mov_cursor_to(int64_t x, int64_t y);
         void mov_cursor(int xoff, int yoff);
         
@@ -117,24 +144,29 @@ class Buffer {
         // Returns the mode string size.
         size_t get_mode_str(char* buf, size_t buf_size);
 
-        // ---- Input Related ----
 
         void handle_enter();
         void handle_backspace();
 
         Cursor  cursor;
         int64_t scroll;
-           
+
+        void              set_mode(BufferMode new_mode);
+        inline BufferMode get_mode() { return m_mode; }
+
 
     private:
-        
+
+        SelectReg  m_select;
+        BufferMode m_mode;
+       
         bool m_mem_freed;
-        void m_draw_borders(Editor* bite, int base_x, int base_y);
         bool m_clear_last_row;
 
         inline int m_max_row();
 
         void m_draw_title_info(Editor* bite, int x, int y, const char* info, int color);
+        void m_draw_borders(Editor* bite, int base_x, int base_y);
 
 
         // The screen buffer (scrnbuf) is responsible to

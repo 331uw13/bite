@@ -11,6 +11,8 @@ namespace U {
     int     iclamp32(int i, int min, int max);
     bool is_valid_char(char c); // <- TODO: maybe rename this?
 
+    void iswap64(int64_t* a, int64_t* b);
+
     void draw_info(const char* info_fmt, ...);
     void clear_part(int x, int y, int width);
 

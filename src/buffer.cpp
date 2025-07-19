@@ -7,7 +7,6 @@
 #include "util.hpp"
 
 
-
 static const char* BUFFER_MODES_STR[] = {
     "NULLMODE",
     "INSERT",
@@ -25,8 +24,8 @@ Buffer::Buffer(const char* name) {
     this->width = -1;
     this->height = -1;
     this->tab_width = 3;
-
-    this->mode = BufferMode::INSERT;
+        
+    this->set_mode(BufferMode::INSERT);
 
     m_scrnbuf = NULL;
     m_mem_freed = false;
@@ -107,7 +106,7 @@ void Buffer::m_draw_borders(Editor* bite, int base_x, int base_y) {
     m_draw_title_info(bite, info_x, this->pos_y, this->name.c_str(),
             Color::DARK_CYAN_0);
 
-    if(this->mode != BufferMode::NULLMODE) {
+    if(this->get_mode() != BufferMode::NULLMODE) {
         char mode_str[16] = { 0 };
         info_x -= get_mode_str(mode_str, 16) + 3;
 
@@ -117,7 +116,6 @@ void Buffer::m_draw_borders(Editor* bite, int base_x, int base_y) {
 }
         
 void Buffer::m_draw_title_info(Editor* bite, int x, int y, const char* info, int color) {
-
     const size_t info_size = strlen(info);
    
     bite->set_color(Color::DARK_CYAN_1);
@@ -127,7 +125,6 @@ void Buffer::m_draw_title_info(Editor* bite, int x, int y, const char* info, int
 
     bite->set_color(color);
     mvprintw(y, x+1, info);
-
 }
 
 
@@ -145,6 +142,8 @@ void Buffer::draw(Editor* bite) {
     const int base_x = this->pos_x + this->paddn_x + lastln_digits + 1;
     const int base_y = this->pos_y + this->paddn_y;
 
+    this->last_draw_base_x = base_x;
+    this->last_draw_base_y = base_y;
 
     m_draw_borders(bite, this->pos_x, this->pos_y);
 
@@ -174,6 +173,7 @@ void Buffer::draw(Editor* bite) {
         if(m_scrnbuf[y].prev_length > m_scrnbuf[y].length) {
             U::clear_part(this->pos_x+1, base_y+y, this->width);
         }
+        
 
         // Line number.
         // Clear small part where the line number is.
@@ -186,9 +186,10 @@ void Buffer::draw(Editor* bite) {
                 this->pos_x + (lastln_digits - ln_digits) + 1,
                 "%li", idx);
 
+
         // Line data.
-        bite->set_color(Color::WHITE);
-        mvprintw(base_y + y, base_x, ln->str.c_str());
+        bite->set_color(Color::DARK_WHITE_0);
+        mvaddnstr(base_y + y, base_x, ln->str.c_str(), this->width - lastln_digits - 2); 
         y++;
     }
 
@@ -198,6 +199,12 @@ void Buffer::draw(Editor* bite) {
         U::clear_part(this->pos_x+1, base_y + data.size() - this->scroll, this->width);
     }
 
+
+    // Draw selected region.
+    if(this->get_mode() == BufferMode::SELECT) {
+        bite->set_color(Color::RED);
+        this->selectreg_action(SelectRegAct::draw);
+    }
 
     // Draw cursor.
     bite->set_color(Color::CURSOR);
@@ -214,7 +221,7 @@ void Buffer::draw(Editor* bite) {
 }
         
 size_t Buffer::get_mode_str(char* outbuf, size_t outbuf_size) {
-    const char* mode_str = BUFFER_MODES_STR[this->mode];
+    const char* mode_str = BUFFER_MODES_STR[m_mode];
     const size_t mode_str_size = strlen(mode_str);
     
     if(outbuf_size < mode_str_size) {
@@ -310,7 +317,14 @@ void Buffer::mov_cursor_to(int64_t x, int64_t y) {
         this->scroll += (this->cursor.y - this->cursor.py);
         this->scroll = (this->scroll < 0) ? 0 : this->scroll;
     }
-    
+   
+    // Update buffer selected region if mode is active.
+    // Only end position needs to be updated because
+    // start position is set when buffer mode is changed to BufferMode::SELECT.
+    if(this->get_mode() == BufferMode::SELECT) {
+        m_select.endX = cursor.x;
+        m_select.endY = cursor.y;
+    }
 }
 
 void Buffer::mov_cursor(int xoff, int yoff) {
@@ -349,8 +363,7 @@ bool Buffer::del_char(const Cursor& cur) {
 }
 
 void Buffer::add_line(int64_t y, const std::string& str) {
-    y = U::iclamp64(y, 0, data.size()-1);
-    data.insert(data.begin() + y+1,
+    data.insert(data.begin() + y,
     (Line){ 
         .str = str,
         .force_update = 0
@@ -358,9 +371,10 @@ void Buffer::add_line(int64_t y, const std::string& str) {
 }
 
 void Buffer::del_line(int64_t y) {
+    if(data.empty()) {
+        return;
+    }
     m_clear_last_row = true;
-    y = U::iclamp64(y, 0, data.size()-1);
-
     data.erase(data.begin() + y);
 }
 
@@ -382,14 +396,14 @@ void Buffer::handle_enter() {
         /* Split line and move it down */
         
         const size_t size = ln->str.size() - this->cursor.x;
-        add_line(this->cursor.y, ln->str.substr(this->cursor.x, size));
+        add_line(this->cursor.y+1, ln->str.substr(this->cursor.x, size));
         
         ln = getln(cursor.y); // Update pointer after insert.
         ln->str.resize(this->cursor.x);
         mov_cursor_to(0, this->cursor.y+1);
     }
     else {
-        add_line(this->cursor.y, "");
+        add_line(this->cursor.y+1, "");
         mov_cursor(0, 1);
     }
 }
@@ -433,5 +447,78 @@ void Buffer::handle_backspace() {
         mov_cursor_to(ncur_x, this->cursor.y-1);
     }
 }
+
+void Buffer::set_mode(BufferMode new_mode) {
+    m_mode = new_mode;
+
+    if(new_mode == BufferMode::SELECT) {
+        m_select = SelectReg(cursor);
+    }
+}
+   
+void Buffer::selectreg_action(void(*act_callback)(Buffer*, const std::string&, Int64x2)) {
+    if(this->get_mode() != BufferMode::SELECT) {
+        log_print(WARNING, "Buffer mode is not SELECT but this function was called.");
+        return;
+    }
+
+
+    SelectReg reg = m_select;
+
+    if(reg.startY > reg.endY) {
+        reg.startX += 1;
+        U::iswap64(&reg.startY, &reg.endY);
+        U::iswap64(&reg.startX, &reg.endX);
+    }
+    else
+    if(reg.startY == reg.endY
+    && reg.startX > reg.endX) {
+        reg.startX += 1;
+        U::iswap64(&reg.startX, &reg.endX);
+    }
+    
+
+    std::string tmp;
+    tmp.reserve(1024);
+
+
+    if(reg.startY == reg.endY) {    
+        std::string* ln = getlnstr(reg.startY);
+
+        act_callback(this,
+                ln->substr(reg.startX, reg.endX - reg.startX),
+                (Int64x2){ reg.startX, reg.startY }
+                );
+
+        return;
+    }
+
+    for(int64_t y = reg.startY; y <= reg.endY; y++) {
+        std::string* ln = getlnstr(y);
+        tmp = *ln;
+
+        size_t v_index = 0;
+        size_t v_size = tmp.size();
+        int64_t x = 0;
+
+        if(y == reg.startY) {
+            x = reg.startX;
+            v_index = x;
+            v_size = ln->size() - x;
+        }
+        else
+        if(y == reg.endY) {
+            v_index = 0;
+            v_size = reg.endX;
+            x = 0;
+        }
+
+        Int64x2 ln_pos = (Int64x2){ x, y };
+        act_callback(this, tmp.substr(v_index, v_size), ln_pos);
+    }
+
+
+}
+
 
 

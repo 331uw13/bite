@@ -39,7 +39,7 @@ void main_loop(Editor* bite) {
         
         InputHandler::handle_shared(bite, bite->buf, input);
         
-        switch(bite->buf->mode) {
+        switch(bite->buf->get_mode()) {
             case BufferMode::NULLMODE:
                 InputHandler::handle_null_mode(bite, bite->buf, input);
                 break;
@@ -61,7 +61,7 @@ void main_loop(Editor* bite) {
 
 
 int main(int argc, char** argv) {
-   
+  
     assign_logfile("bite.log");
 
     // By default there is not unicode support with POSIX locale.
@@ -83,6 +83,9 @@ int main(int argc, char** argv) {
     bite.init();
     bite.init_style();
     bite.map_input_keys();
+
+    FileIO::read_to_buffer(bite.buf, "test_file.c");
+
 
     // Get the terminal width and height
     // and set initial buffer size and position.

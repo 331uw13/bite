@@ -135,6 +135,13 @@ void Editor::map_input_keys() {
     add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_INSERTMODE },"<CTRL> l");
     add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_SELECTMODE },"<CTRL> s");
 
+    add_keymap(BufferMode::NULLMODE, (KeyCommand){ EditorKey::K_UPDATE_SCRN }, "U");
+
+    add_keymap(BufferMode::NULLMODE, (KeyCommand){ EditorKey::K_LEFT },   "j");
+    add_keymap(BufferMode::NULLMODE, (KeyCommand){ EditorKey::K_RIGHT },  "l");
+    add_keymap(BufferMode::NULLMODE, (KeyCommand){ EditorKey::K_UP },     "i");
+    add_keymap(BufferMode::NULLMODE, (KeyCommand){ EditorKey::K_DOWN },   "k");
+
 }
 
 
@@ -205,10 +212,10 @@ void Editor::update_buffer_areas() {
 
     // TODO: Add support for multiple buffers.
 
-    this->buf->pos_x = 32;
-    this->buf->pos_y = 3;
-    this->buf->width = this->term_width / 3;
-    this->buf->height = 32;
+    this->buf->pos_x = 0;
+    this->buf->pos_y = 0;
+    this->buf->width = this->term_width / 2;
+    this->buf->height = this->term_height - 2;
 
     this->buf->checkup_scrnbuf();
 }

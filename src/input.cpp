@@ -37,15 +37,15 @@ void InputHandler::handle_shared(Editor* bite, Buffer* buf, int input) {
             break;
        
         case EditorKey::K_NULLMODE:
-            buf->mode = BufferMode::NULLMODE;
+            buf->set_mode(BufferMode::NULLMODE);
             break;
         
         case EditorKey::K_INSERTMODE:
-            buf->mode = BufferMode::INSERT;
+            buf->set_mode(BufferMode::INSERT);
             break;
         
         case EditorKey::K_SELECTMODE:
-            buf->mode = BufferMode::SELECT;
+            buf->set_mode(BufferMode::SELECT);
             break;
 
         default:
@@ -56,15 +56,42 @@ void InputHandler::handle_shared(Editor* bite, Buffer* buf, int input) {
 
 
 void InputHandler::handle_null_mode(Editor* bite, Buffer* buf, int input) {
+    if(input <= 0) {
+        return;    
+    }
 
+    KeyCommand kc = bite->keymap[buf->get_mode()][input];
 
+    switch(kc.editor_key) {
+        case EditorKey::K_LEFT:
+            buf->mov_cursor(-1, 0);
+            break;
+        
+        case EditorKey::K_RIGHT:
+            buf->mov_cursor(1, 0);
+            break;
+
+        case EditorKey::K_UP:
+            buf->mov_cursor(0, -1);
+            break;
+        
+        case EditorKey::K_DOWN:
+            buf->mov_cursor(0, 1);
+            break;  
+
+        case EditorKey::K_UPDATE_SCRN:
+            move(0, 0);
+            clrtobot();
+            break;
+    }
+    
 }
 
 void InputHandler::handle_insert_mode(Editor* bite, Buffer* buf, int input) {
     if(input <= 0) {
         return;
     }
-    KeyCommand kc = bite->keymap[buf->mode][input];
+    KeyCommand kc = bite->keymap[buf->get_mode()][input];
 
     if(!kc.editor_key) {
         if(buf->add_char(buf->cursor, input)) {

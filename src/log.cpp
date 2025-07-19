@@ -12,6 +12,7 @@
 
 static const char* LOG_INFO_TYPE_STR[] = {
     "INFO",
+    "WARNING",
     "ERROR",
     "FATAL"
 };

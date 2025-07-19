@@ -15,7 +15,9 @@ enum EditorKey : int {
     K_NULLMODE,
     K_INSERTMODE,
     K_SELECTMODE,
-    
+
+    K_UPDATE_SCRN,
+
     NUM_KEYS
 };
 

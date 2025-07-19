@@ -18,6 +18,11 @@ bool U::is_valid_char(char c) {
     return ((c >= 0x20) && (c <= 0x7E));
 }
     
+void U::iswap64(int64_t* a, int64_t* b) {
+    int64_t tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
 
 void U::draw_info(const char* info_fmt, ...) {
     va_list args;

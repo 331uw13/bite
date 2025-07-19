@@ -4,6 +4,7 @@
 
 enum LogInfoType : int {
     INFO = 0,
+    WARNING,
     ERROR,
     FATAL
 };
