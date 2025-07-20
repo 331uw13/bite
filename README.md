@@ -1,4 +1,4 @@
 # Bite 
 ## Terminal text editor
 
-goal is to create fully modular text editor with its own scripting language
+Idea is to create code editor with plugin support.
