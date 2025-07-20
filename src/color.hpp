@@ -20,6 +20,7 @@ namespace Color {
         PURPLE,  DARK_PURPLE_0,   DARK_PURPLE_1,
         MAGENTA, DARK_MAGENTA_0,  DARK_MAGENTA_1,
         CURSOR,
+        CMD_CURSOR,
         NUM_COLORS
     };
 }

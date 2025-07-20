@@ -34,12 +34,13 @@ void main_loop(Editor* bite) {
         update_term_size(bite);
 
         bite->buf->draw(bite);
+        BufferMode bufmode = bite->buf->get_mode();
+
+        const int input = getch();
+        const bool shared_mode_can_move = (bufmode != BufferMode::COMMAND_INPUT);
+        InputHandler::handle_shared(bite, bite->buf, input, shared_mode_can_move);
         
-        int input = getch();
-        
-        InputHandler::handle_shared(bite, bite->buf, input);
-        
-        switch(bite->buf->get_mode()) {
+        switch(bufmode) {
             case BufferMode::NULLMODE:
                 InputHandler::handle_null_mode(bite, bite->buf, input);
                 break;
@@ -50,10 +51,12 @@ void main_loop(Editor* bite) {
             
             case BufferMode::SELECT:
                 InputHandler::handle_select_mode(bite, bite->buf, input);
-                break;                               
-        }
+                break;    
 
-        
+            case BufferMode::COMMAND_INPUT:
+                InputHandler::handle_command_input(bite, bite->buf, input);
+                break;
+        }
 
         refresh();
     }
@@ -105,7 +108,7 @@ int main(int argc, char** argv) {
     close_logfile();
    
     // TODO: maybe its a good idea to have signal handler
-    //       because if crash happens user doesnt go into "broken" terminal state
+    //       because if crash happens user will go into "broken" terminal state
     //       if ncurses doesnt quit properly.
     curs_set(1); // Enable cursor.
     endwin();

@@ -15,6 +15,7 @@ enum EditorKey : int {
     K_NULLMODE,
     K_INSERTMODE,
     K_SELECTMODE,
+    K_COMMANDMODE,
 
     K_UPDATE_SCRN,
 
@@ -33,11 +34,11 @@ class Buffer;
 
 namespace InputHandler {
    
-    void handle_shared        (Editor* bite, Buffer* buf, int input);
+    void handle_shared        (Editor* bite, Buffer* buf, int input, bool can_move);
     void handle_null_mode     (Editor* bite, Buffer* buf, int input);
     void handle_insert_mode   (Editor* bite, Buffer* buf, int input);
     void handle_select_mode   (Editor* bite, Buffer* buf, int input);
-
+    void handle_command_input (Editor* bite, Buffer* buf, int input);
 
 }
 

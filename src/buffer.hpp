@@ -9,6 +9,10 @@
 #include "selectreg_act.hpp"
 
 
+static inline constexpr int CMDLINE_HEIGHT = 2;
+static inline constexpr int CMDLINE_MAX = 32;
+
+
 struct Cursor {
     int64_t x;
     int64_t y;
@@ -62,7 +66,7 @@ struct SelectReg {
 
 
 
-// TODO: Rename to BufferLine
+// TODO: Rename to BufferLine ? 
 struct Line {
     std::string  str;
     uint8_t      force_update; // Clear the whole line before drawing.
@@ -73,10 +77,12 @@ struct ScreenLine {
     uint64_t prev_length;
 };
 
+
 enum BufferMode : int {
     NULLMODE = 0,
     INSERT,
     SELECT,
+    COMMAND_INPUT,
     
     SHARED, // Special for key input handling.
 
@@ -94,7 +100,7 @@ class Buffer {
         void free_memory();
 
         void draw(Editor* bite);
-
+        
 
         uint64_t index;   // Index in Editor::buffers array.
         uint16_t paddn_x; // Number of empty space at start of X and Y
@@ -112,6 +118,8 @@ class Buffer {
 
         std::vector<Line> data;
         std::string name;
+        std::string cmd;
+        int16_t     cmd_cur_x;
 
         // Copies the private select region
         // and makes sure the start and end position 
@@ -167,11 +175,11 @@ class Buffer {
 
         void m_draw_title_info(Editor* bite, int x, int y, const char* info, int color);
         void m_draw_borders(Editor* bite, int base_x, int base_y);
+        void m_draw_command_line(Editor* bite);
 
 
         // The screen buffer (scrnbuf) is responsible to
-        // update lines which width is smaller than in previous update.
-        // it will keep track of the widths and update them accordingly.
+        // update lines which width is bigger than in previous update.
         ScreenLine* m_scrnbuf;
         size_t      m_scrnbuf_size;
         

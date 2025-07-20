@@ -131,9 +131,10 @@ void Editor::map_input_keys() {
     add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_UP },        "<UP>");
     add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_DOWN },      "<DOWN>");
 
-    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_NULLMODE },  "<CTRL> x");
-    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_INSERTMODE },"<CTRL> l");
-    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_SELECTMODE },"<CTRL> s");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_NULLMODE },   "<CTRL> x");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_INSERTMODE }, "<CTRL> l");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_SELECTMODE }, "<CTRL> s");
+    add_keymap(BufferMode::SHARED, (KeyCommand){ EditorKey::K_COMMANDMODE },"<CTRL> p");
 
     add_keymap(BufferMode::NULLMODE, (KeyCommand){ EditorKey::K_UPDATE_SCRN }, "U");
 
@@ -183,6 +184,7 @@ void Editor::m_init_all_colors() {
     m_init_color(Color::MAGENTA, 240, 60, 190);
 
     m_init_color(Color::CURSOR, 40, 200, 40, Color::DARK_GREEN_1);
+    m_init_color(Color::CMD_CURSOR, 40, 200, 200, Color::DARK_CYAN_1);
 }
 
 Buffer* Editor::add_buffer(const char* name) {
@@ -212,10 +214,14 @@ void Editor::update_buffer_areas() {
 
     // TODO: Add support for multiple buffers.
 
+
     this->buf->pos_x = 0;
     this->buf->pos_y = 0;
     this->buf->width = this->term_width / 2;
     this->buf->height = this->term_height - 2;
+
+    int height_add = (buf->get_mode() == BufferMode::COMMAND_INPUT) ? CMDLINE_HEIGHT : 0;
+    this->buf->height -= height_add;
 
     this->buf->checkup_scrnbuf();
 }

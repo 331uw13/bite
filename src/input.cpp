@@ -1,10 +1,10 @@
 #include "input.hpp"
 #include "editor.hpp"
-
+#include "command.hpp"
 #include "util.hpp"
 
 
-void InputHandler::handle_shared(Editor* bite, Buffer* buf, int input) {
+void InputHandler::handle_shared(Editor* bite, Buffer* buf, int input, bool can_move) {
 
     if(input <= 0) {
         return;
@@ -21,19 +21,19 @@ void InputHandler::handle_shared(Editor* bite, Buffer* buf, int input) {
     switch(kc.editor_key) {
         
         case EditorKey::K_LEFT:
-            buf->mov_cursor(-1, 0);
+            if(can_move) { buf->mov_cursor(-1, 0); }
             break;
         
         case EditorKey::K_RIGHT:
-            buf->mov_cursor(1, 0);
+            if(can_move) { buf->mov_cursor(1, 0); }
             break;
 
         case EditorKey::K_UP:
-            buf->mov_cursor(0, -1);
+            if(can_move) { buf->mov_cursor(0, -1); }
             break;
         
         case EditorKey::K_DOWN:
-            buf->mov_cursor(0, 1);
+            if(can_move) { buf->mov_cursor(0, 1); }
             break;
        
         case EditorKey::K_NULLMODE:
@@ -47,12 +47,15 @@ void InputHandler::handle_shared(Editor* bite, Buffer* buf, int input) {
         case EditorKey::K_SELECTMODE:
             buf->set_mode(BufferMode::SELECT);
             break;
+        
+        case EditorKey::K_COMMANDMODE:
+            buf->set_mode(BufferMode::COMMAND_INPUT);
+            break;
 
         default:
             break;
     }
-
-}
+} // END SHARED_MODE
 
 
 void InputHandler::handle_null_mode(Editor* bite, Buffer* buf, int input) {
@@ -84,8 +87,8 @@ void InputHandler::handle_null_mode(Editor* bite, Buffer* buf, int input) {
             clrtobot();
             break;
     }
-    
-}
+
+} // END NULL_MODE
 
 void InputHandler::handle_insert_mode(Editor* bite, Buffer* buf, int input) {
     if(input <= 0) {
@@ -115,13 +118,53 @@ void InputHandler::handle_insert_mode(Editor* bite, Buffer* buf, int input) {
             buf->mov_cursor(buf->tab_width, 0);
             break;
     }
-}
+
+} // END INSERT_MODE
 
 
 void InputHandler::handle_select_mode(Editor* bite, Buffer* buf, int input) {
 
+} // END SELECT_MODE
 
-}
+
+
+void InputHandler::handle_command_input(Editor* bite, Buffer* buf, int input) {
+
+    switch(input) {
+        case KEY_LEFT:
+            if(buf->cmd_cur_x > 0) {
+                buf->cmd_cur_x--;
+            }
+            break;
+
+        case KEY_RIGHT:
+            if((size_t)buf->cmd_cur_x < buf->cmd.size()) {
+                buf->cmd_cur_x++;
+            }
+            break;
+
+        case KEY_BACKSPACE:
+            if(buf->cmd_cur_x > 0) {
+                buf->cmd.erase(buf->cmd_cur_x-1, 1);
+                buf->cmd_cur_x--;
+            }
+            break;
+
+        case 0x0A: /* Enter */
+            Command::execute(buf, buf->cmd);
+            buf->cmd.clear();
+            buf->cmd_cur_x = 0;
+            break;
+
+        default:
+            if(buf->cmd.size() < CMDLINE_MAX && U::is_valid_char(input)) {
+                buf->cmd.insert(buf->cmd_cur_x, 1, input);
+                buf->cmd_cur_x++;
+            }
+            break;
+    }
+
+} // END COMMAND_INPUT
 
 
 

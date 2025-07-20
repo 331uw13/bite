@@ -23,6 +23,11 @@ void U::iswap64(int64_t* a, int64_t* b) {
     *a = *b;
     *b = tmp;
 }
+    
+void U::clear_screen() {
+    move(0, 0);
+    clrtobot();
+}
 
 void U::draw_info(const char* info_fmt, ...) {
     va_list args;

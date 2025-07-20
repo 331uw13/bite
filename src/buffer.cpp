@@ -1,5 +1,5 @@
 #include <ncurses.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstring>
 
 #include "buffer.hpp"
@@ -10,7 +10,8 @@
 static const char* BUFFER_MODES_STR[] = {
     "NULLMODE",
     "INSERT",
-    "SELECT"
+    "SELECT",
+    "---"
 };
 
 
@@ -18,14 +19,17 @@ static const char* BUFFER_MODES_STR[] = {
 Buffer::Buffer(const char* name) {
     this->cursor = Cursor();
     this->name = name;
+    this->cmd = "";
+    this->cmd_cur_x = 0;
     this->scroll = 0;
     this->paddn_x = 2;
     this->paddn_y = 1;
     this->width = -1;
     this->height = -1;
     this->tab_width = 3;
-        
+
     this->set_mode(BufferMode::INSERT);
+    this->cmd.reserve(CMDLINE_MAX);
 
     m_scrnbuf = NULL;
     m_mem_freed = false;
@@ -42,7 +46,7 @@ Buffer::~Buffer() {
 
 void Buffer::free_memory() {
     if(m_scrnbuf) {
-        free(m_scrnbuf);
+        delete[] m_scrnbuf;
         m_scrnbuf = NULL;
     }
 
@@ -98,6 +102,18 @@ void Buffer::m_draw_borders(Editor* bite, int base_x, int base_y) {
             );
 
 
+    if(m_mode == BufferMode::COMMAND_INPUT) {
+        // Bottom.
+        mvhline_set(
+                base_y + this->height + CMDLINE_HEIGHT + 1,
+                base_x + 1,
+                &bite->settn.style.B_line_ch,
+                this->width
+                );
+           
+
+    }
+
 
     // Draw buffer info.
 
@@ -106,7 +122,7 @@ void Buffer::m_draw_borders(Editor* bite, int base_x, int base_y) {
     m_draw_title_info(bite, info_x, this->pos_y, this->name.c_str(),
             Color::DARK_CYAN_0);
 
-    if(this->get_mode() != BufferMode::NULLMODE) {
+    if(m_mode != BufferMode::NULLMODE) {
         char mode_str[16] = { 0 };
         info_x -= get_mode_str(mode_str, 16) + 3;
 
@@ -125,6 +141,34 @@ void Buffer::m_draw_title_info(Editor* bite, int x, int y, const char* info, int
 
     bite->set_color(color);
     mvprintw(y, x+1, info);
+}
+
+void Buffer::m_draw_command_line(Editor* bite) {
+   
+    int Y = this->height + CMDLINE_HEIGHT;
+    int X = 3;
+
+    move(Y, X);
+    clrtoeol();
+
+    bite->set_color(Color::GREEN);
+    mvaddstr(Y, X, this->cmd.c_str());
+
+
+    bite->set_color(Color::DARK_GREEN_0);
+    mvaddch(Y, X-2, '>');
+
+
+    // Draw cursor for command line.
+
+    char cur_char = this->cmd[this->cmd_cur_x];
+    if(cur_char == 0) {
+        cur_char = 0x20;
+    }
+
+    bite->set_color(Color::CMD_CURSOR);
+    mvaddch(Y, X + this->cmd_cur_x, cur_char);
+
 }
 
 
@@ -201,23 +245,25 @@ void Buffer::draw(Editor* bite) {
 
 
     // Draw selected region.
-    if(this->get_mode() == BufferMode::SELECT) {
+    if(m_mode == BufferMode::SELECT) {
         bite->set_color(Color::RED);
         this->selectreg_action(SelectRegAct::draw);
     }
+    else 
+    if(m_mode == BufferMode::COMMAND_INPUT) {
+        m_draw_command_line(bite);
+    }
 
     // Draw cursor.
-    bite->set_color(Color::CURSOR);
-    mvprintw(base_y + this->cursor.y - this->scroll,
-             base_x + this->cursor.x,
-             "%c", this->cursor.chr);
-    bite->reset_color();
+    if(m_mode != BufferMode::COMMAND_INPUT) {
+        bite->set_color(Color::CURSOR);
+        mvprintw(base_y + this->cursor.y - this->scroll,
+                 base_x + this->cursor.x,
+                 "%c", this->cursor.chr);
+    }
 
 
     m_prev_lastln_digits = lastln_digits;
-
-    //U::draw_info("Key: %i", bite->last_key_input);
-
 }
         
 size_t Buffer::get_mode_str(char* outbuf, size_t outbuf_size) {
@@ -243,25 +289,28 @@ void Buffer::checkup_scrnbuf() {
         return;
     }
 
-    const size_t new_scrnbuf_size = this->height * sizeof *m_scrnbuf;
+    const size_t new_scrnbuf_size = this->height + 16;
 
     if(!m_scrnbuf) {
-        m_scrnbuf = (ScreenLine*)malloc(new_scrnbuf_size);
+        m_scrnbuf = new ScreenLine[new_scrnbuf_size];
         if(!m_scrnbuf) {
-            fprintf(stderr, "%s: Failed to allocate %li bytes for \"scrnbuf\"\n",
-                    __func__, new_scrnbuf_size);
+            log_print(FATAL, "Failed to allocate %li elements for \"scrnbuf\"",
+                    new_scrnbuf_size);
             return;
         }
     }
     else // TODO: Maybe handle a case where user would resize from huge array to very small.
          //       to free some memory.
     if(m_scrnbuf_size < new_scrnbuf_size) {
-        ScreenLine* tmpptr = (ScreenLine*)realloc(m_scrnbuf, new_scrnbuf_size);
+        ScreenLine* tmpptr = new ScreenLine[new_scrnbuf_size];
         if(!tmpptr) {
-            fprintf(stderr, "%s: Failed to re-allocate %li bytes for \"scrnbuf\"\n",
-                    __func__, new_scrnbuf_size);
+            log_print(FATAL, "Failed to re-allocate %li elements for \"scrnbuf\"",
+                    new_scrnbuf_size);
             return;
         }
+
+        delete[] m_scrnbuf;
+        m_scrnbuf = tmpptr;
     }
 
     m_scrnbuf_size = new_scrnbuf_size;
@@ -449,11 +498,24 @@ void Buffer::handle_backspace() {
 }
 
 void Buffer::set_mode(BufferMode new_mode) {
-    m_mode = new_mode;
 
     if(new_mode == BufferMode::SELECT) {
         m_select = SelectReg(cursor);
     }
+    else
+    if((m_mode != new_mode)
+    && (new_mode == BufferMode::COMMAND_INPUT)) {
+        this->height -= CMDLINE_HEIGHT;
+        U::clear_screen();
+    }
+
+    if((m_mode == BufferMode::COMMAND_INPUT)
+    && (new_mode != BufferMode::COMMAND_INPUT)) {
+        this->height += CMDLINE_HEIGHT;
+        U::clear_screen();
+    }
+
+    m_mode = new_mode;
 }
    
 void Buffer::selectreg_action(void(*act_callback)(Buffer*, const std::string&, Int64x2)) {
@@ -477,7 +539,6 @@ void Buffer::selectreg_action(void(*act_callback)(Buffer*, const std::string&, I
         U::iswap64(&reg.startX, &reg.endX);
     }
     
-
     std::string tmp;
     tmp.reserve(1024);
 
