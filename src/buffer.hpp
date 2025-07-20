@@ -65,11 +65,10 @@ struct SelectReg {
 };
 
 
-
 // TODO: Rename to BufferLine ? 
 struct Line {
     std::string  str;
-    uint8_t      force_update; // Clear the whole line before drawing.
+    bool         force_update; // Clear the whole line before drawing.
 };
 
 struct ScreenLine {
@@ -121,12 +120,7 @@ class Buffer {
         std::string cmd;
         int16_t     cmd_cur_x;
 
-        // Copies the private select region
-        // and makes sure the start and end position 
-        // is in correct order.
-        // Also start and end positions are clamped.
-        SelectReg get_selected_reg();
-      
+     
         // See 'selectreg_act.hpp' for more info about this:
         void selectreg_action(void(*act_callback)(Buffer* buf, const std::string&, Int64x2));
         

@@ -5,11 +5,11 @@
 
 
 class Buffer;
-
+class Editor;
 
 namespace Command
 {
-    void execute(Buffer* buf, const std::string& cmd);
+    void execute(Editor* bite, Buffer* buf, const std::string& cmd);
 };
 
 

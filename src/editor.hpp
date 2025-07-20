@@ -36,23 +36,35 @@ struct Settings {
 };
 
 
-
+struct lua_State;
 
 
 class Editor {
 
     public:
+
+        static Editor& Instance() {
+            static Editor i;
+            return i;
+        }
+
+        // Avoid accidental copies.
+        Editor(Editor const&) = delete;
+        void operator=(Editor const&) = delete;
+
         bool running;
 
         void init();
         void init_style();
         void map_input_keys();
-       
+
+        lua_State* lua;
 
         // NOTE: add_keymap function expects that the <CTRL> modifier starts at first index.
         void add_keymap(BufferMode mode, const KeyCommand& kc, const std::string& str);
         std::map<int, KeyCommand> keymap [BufferMode::NUM_MODES];
-        
+
+        void add_lua_bindings();
 
 
         void set_color(int color);
@@ -68,6 +80,7 @@ class Editor {
         
         /*REMOVE*/int last_key_input;
 
+
     // ---- Buffer Control ----------------------
 
         Buffer*  add_buffer (const char* name);
@@ -79,6 +92,8 @@ class Editor {
         
     
     private:
+
+        Editor() {}
 
         int m_color_pair_num;
         void m_init_all_colors();

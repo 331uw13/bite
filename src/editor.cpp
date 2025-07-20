@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <cstring>
-
+#include <lua.hpp>
 
 #include "editor.hpp"
 #include "util.hpp"
-
+#include "lua_bindings.hpp"
 
 
 void Editor::init() {
@@ -18,6 +18,8 @@ void Editor::init() {
     this->running = true;
     this->buf = add_buffer("Test Buffer");
 
+    this->lua = luaL_newstate();
+    luaL_openlibs(this->lua);
 }
 
 void Editor::init_style() {
@@ -227,6 +229,10 @@ void Editor::update_buffer_areas() {
 }
 
 
+void Editor::add_lua_bindings() {
+    lua_register(this->lua, "gotoln", LuaBind::gotoln);
+    lua_register(this->lua, "buf_size", LuaBind::buf_size);
 
+}
 
 

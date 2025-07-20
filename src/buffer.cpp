@@ -211,7 +211,7 @@ void Buffer::draw(Editor* bite) {
 
         if(ln->force_update || update_all) {
             U::clear_part(this->pos_x+1, base_y+y, this->width);
-            ln->force_update = 0;
+            ln->force_update = false;
         }
         else
         if(m_scrnbuf[y].prev_length > m_scrnbuf[y].length) {
@@ -350,10 +350,10 @@ void Buffer::mov_cursor_to(int64_t x, int64_t y) {
     }
 
     if(this->cursor.px >= (int64_t)ln->str.size()) {
-        ln->force_update = 1;
+        ln->force_update = true;
     }
     if(this->cursor.py != this->cursor.y) {
-        getln(this->cursor.py)->force_update = 1;
+        getln(this->cursor.py)->force_update = true;
     }
 
     
@@ -415,7 +415,7 @@ void Buffer::add_line(int64_t y, const std::string& str) {
     data.insert(data.begin() + y,
     (Line){ 
         .str = str,
-        .force_update = 0
+        .force_update = false
     });
 }
 

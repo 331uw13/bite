@@ -151,7 +151,7 @@ void InputHandler::handle_command_input(Editor* bite, Buffer* buf, int input) {
             break;
 
         case 0x0A: /* Enter */
-            Command::execute(buf, buf->cmd);
+            Command::execute(bite, buf, buf->cmd);
             buf->cmd.clear();
             buf->cmd_cur_x = 0;
             break;

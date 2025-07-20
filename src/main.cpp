@@ -1,10 +1,37 @@
 #include <stdio.h>
 #include <ncurses.h>
 #include <locale.h>
+#include <lua.hpp>
 
 #include "editor.hpp"
 #include "input.hpp"
 #include "util.hpp"
+
+
+/*
+
+int test_func(lua_State* L) {
+    int arg0 = luaL_checkinteger(L, 1);
+    printf("Hello from C++ %i\n", arg0);
+    return 1;
+}
+
+
+int main22() {
+    lua_State* L = luaL_newstate();
+    luaL_openlibs(L);
+
+    lua_register(L, "test_func", test_func);
+
+    if(luaL_dofile(L, "test.lua")) {
+        printf("%s\n", lua_tostring(L, -1));
+    }
+
+
+    lua_close(L);
+    return 0;
+}
+*/
 
 
 
@@ -82,10 +109,11 @@ int main(int argc, char** argv) {
     // Initialize the Editor.
     // It will keep track of all buffers.
 
-    Editor bite;
+    Editor& bite = Editor::Instance();
     bite.init();
     bite.init_style();
     bite.map_input_keys();
+    bite.add_lua_bindings();
 
     FileIO::read_to_buffer(bite.buf, "test_file.c");
 
@@ -104,7 +132,8 @@ int main(int argc, char** argv) {
     for(size_t i = 0; i < bite.buffers.size(); i++) {
         bite.buffers[i].free_memory();
     }
-    
+
+    lua_close(bite.lua);
     close_logfile();
    
     // TODO: maybe its a good idea to have signal handler
