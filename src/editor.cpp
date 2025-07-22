@@ -16,8 +16,7 @@ void Editor::init() {
 
     this->last_key_input = 0;
     this->running = true;
-    this->buf = add_buffer("Test Buffer");
-
+    this->buf = add_buffer("<Unnamed>");
     this->lua = luaL_newstate();
 }
 
@@ -34,19 +33,20 @@ void Editor::init_style() {
     style->L_line_ch = U::get_cchar(0x2502);
     style->B_line_ch = U::get_cchar(0x2500);
     style->UDR_connect_ch = U::get_cchar(0x251C);
-    style->UDL_connect_ch = U::get_cchar(0x2520);
+    style->UDL_connect_ch = U::get_cchar(0x2524);
 
     style->win_infostr_prefix_ch = '[';
     style->win_infostr_suffix_ch = ']';
     style->cmdline_indicator_ch = '>';
 
-    
     style->win_border_color         = Color::DARK_BEIGE_0;
     style->win_infostr_affix_color  = Color::DARK_BEIGE_1;
     style->win_name_color           = Color::BEIGE;
     style->buf_modestr_color        = Color::DARK_PINK_0;
     style->cmdline_color            = Color::GREEN;
     style->cmdline_indicator_color  = Color::DARK_GREEN_0;
+    style->msg_error_color          = Color::ORANGE;
+    style->msg_info_color           = Color::CYAN;
 
 }
 
@@ -162,10 +162,13 @@ void Editor::map_input_keys() {
 
 }
 
-
-void Editor::m_init_color(int color_num, int r, int g, int b, int bg_color_num) {
+void Editor::m_pair_colors(int color_num, int r, int g, int b, int bg_color_num) {
     init_color(color_num, r << 2, g << 2, b << 2);
     init_pair(color_num, color_num, bg_color_num);
+}
+
+void Editor::m_init_color(int color_num, int r, int g, int b, int bg_color_num) {
+    m_pair_colors(color_num, r, g, b, bg_color_num);
 
     // Few next are the darker version of r, g and b.
     
@@ -177,8 +180,7 @@ void Editor::m_init_color(int color_num, int r, int g, int b, int bg_color_num) 
         
         color_num++;
 
-        init_color(color_num, r << 2, g << 2, b << 2);
-        init_pair(color_num, color_num, bg_color_num);
+        m_pair_colors(color_num, r, g, b, bg_color_num);
     }
 
 }
@@ -200,8 +202,11 @@ void Editor::m_init_all_colors() {
     m_init_color(Color::PURPLE, 180, 90, 240);
     m_init_color(Color::MAGENTA, 240, 60, 190);
 
-    m_init_color(Color::CURSOR, 40, 200, 40, Color::DARK_GREEN_1);
-    m_init_color(Color::CMD_CURSOR, 40, 200, 200, Color::DARK_CYAN_1);
+    // Special colors.
+    m_pair_colors(Color::CURSOR,     40, 200, 40,  Color::DARK_GREEN_1);
+    m_pair_colors(Color::CMD_CURSOR, 40, 200, 200, Color::DARK_CYAN_1);
+    m_pair_colors(Color::MSG_TITLE,  150, 120, 80,   Color::DARK_WHITE_2);
+    m_pair_colors(Color::SELECT,     200, 200, 200,  Color::DARK_CYAN_0);
 }
 
 Buffer* Editor::add_buffer(const char* name) {
@@ -231,7 +236,6 @@ void Editor::update_buffer_areas() {
 
     // TODO: Add support for multiple buffers.
 
-
     this->buf->pos_x = 0;
     this->buf->pos_y = 0;
     this->buf->width = this->term_width / 2;
@@ -243,12 +247,17 @@ void Editor::update_buffer_areas() {
     this->buf->checkup_scrnbuf();
 }
 
-
 void Editor::add_lua_bindings() {
+    lua_register(this->lua, "test", LuaBind::test);
+
     lua_register(this->lua, "print", LuaBind::print);
-    lua_register(this->lua, "p", LuaBind::print);
     lua_register(this->lua, "gotoln", LuaBind::gotoln);
     lua_register(this->lua, "buf_size", LuaBind::buf_size);
+    lua_register(this->lua, "hide_msg", LuaBind::hide_msg);
+    lua_register(this->lua, "show_msg", LuaBind::show_msg);
+    lua_register(this->lua, "open_file", LuaBind::open_file);
+    lua_register(this->lua, "get_file", LuaBind::get_file);
+
 }
 
 

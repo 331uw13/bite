@@ -74,6 +74,10 @@ void EDraw::window(Editor* bite,
     EDraw__window_infostr(bite, info_offX, y, name, bite->settn.style.win_name_color);
 
 
+    if(info.size() == 0) {
+        return;
+    }
+
     for(std::pair<std::string, ColorT> part : info) {
         info_offX -= part.first.size()+3;       
         EDraw__window_infostr(bite, info_offX, y, part.first, part.second);
@@ -126,18 +130,9 @@ void EDraw::cmdline(Editor* bite, Buffer* buf) {
     mvadd_wch(Y, buf->pos_x,                  &bite->settn.style.L_line_ch);
     mvadd_wch(Y, buf->pos_x + buf->width + 1, &bite->settn.style.L_line_ch);
 
-
     // Connecting characters.
-
-    /*
-    // Left line.
-    mvvline_set(
-            y + 1,
-            x,
-            &bite->settn.style.L_line_ch,
-            h
-            );
-    */
+    mvadd_wch(Y - 1, buf->pos_x,                  &bite->settn.style.UDR_connect_ch);
+    mvadd_wch(Y - 1, buf->pos_x + buf->width + 1, &bite->settn.style.UDL_connect_ch);
 }
 
 

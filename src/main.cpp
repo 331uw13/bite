@@ -8,32 +8,6 @@
 #include "util.hpp"
 
 
-/*
-
-int test_func(lua_State* L) {
-    int arg0 = luaL_checkinteger(L, 1);
-    printf("Hello from C++ %i\n", arg0);
-    return 1;
-}
-
-
-int main22() {
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-
-    lua_register(L, "test_func", test_func);
-
-    if(luaL_dofile(L, "test.lua")) {
-        printf("%s\n", lua_tostring(L, -1));
-    }
-
-
-    lua_close(L);
-    return 0;
-}
-*/
-
-
 
 void update_term_size(Editor* bite) {
     int twidth = 0;
@@ -115,7 +89,10 @@ int main(int argc, char** argv) {
     bite.map_input_keys();
     bite.add_lua_bindings();
 
-    FileIO::read_to_buffer(bite.buf, "test_file.c");
+
+    if(argc > 1) {
+        FileIO::read_to_buffer(bite.buf, argv[1], FileIO::TRUNC_BUFFER);
+    }
 
 
     // Get the terminal width and height

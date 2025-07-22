@@ -7,10 +7,11 @@
 #include <span>
 
 #include "selectreg_act.hpp"
+#include "color.hpp"
 
-
-static inline constexpr int CMDLINE_HEIGHT = 2;
-static inline constexpr int CMDLINE_MAX = 32;
+static inline constexpr auto CMDLINE_HEIGHT = 2;
+static inline constexpr auto CMDLINE_MAX = 64;
+static inline constexpr auto MAX_MSG_ROWS = 16;
 
 
 struct Cursor {
@@ -108,23 +109,26 @@ class Buffer {
         int pos_y;
         int width;
         int height;
+        bool msg_visible;
 
         int last_draw_base_x;
         int last_draw_base_y;
-
+        int last_draw_lndigits;
 
         uint8_t tab_width;
 
         std::vector<Line> data;
         std::string name;
-        std::string msg; // Message.
         std::string cmd;
         int16_t     cmd_cur_x;
-     
+
         // See 'selectreg_act.hpp' for more info about this:
         void selectreg_action(void(*act_callback)(Buffer* buf, const std::string&, Int64x2));
-        
-        
+
+        void set_msg       (const std::string& new_msg);
+        void set_msg_title (const std::string& msg_title);
+        void set_msg_color (ColorT color);
+
         void checkup_scrnbuf();
         void clamp_cursor_xy();
 
@@ -154,6 +158,7 @@ class Buffer {
         int64_t scroll;
 
         void              set_mode(BufferMode new_mode);
+        void              set_previous_mode();
         inline BufferMode get_mode() { return m_mode; }
 
 
@@ -161,7 +166,16 @@ class Buffer {
 
         SelectReg  m_select;
         BufferMode m_mode;
-       
+        BufferMode m_mode_prev;
+
+        // Message.
+        struct m__msg_t {
+            int         num_rows;
+            std::string data[MAX_MSG_ROWS];
+            std::string title;
+            ColorT      color;
+        } m_msg;
+
         bool m_mem_freed;
         bool m_clear_last_row;
 

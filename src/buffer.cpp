@@ -26,13 +26,13 @@ Buffer::Buffer(const char* name) {
     this->width = -1;
     this->height = -1;
     this->tab_width = 3;
-
     this->set_mode(BufferMode::INSERT);
     this->cmd.reserve(CMDLINE_MAX);
 
     m_scrnbuf = NULL;
     m_mem_freed = false;
     m_prev_lastln_digits = 1;
+    this->msg_visible = false;
     
     add_line(0, "");
 }
@@ -52,41 +52,64 @@ void Buffer::free_memory() {
     m_mem_freed = true;
 }
 
-/*        
-void Buffer::m_draw_command_line(Editor* bite) {
-   
-    int Y = this->last_draw_base_y + this->height + CMDLINE_HEIGHT - 1;
-    int X = this->pos_x + 3;
-
-    U::clear_part(X, Y, CMDLINE_MAX+1);
-
-    bite->set_color(Color::GREEN);
-    mvaddstr(Y, X, this->cmd.c_str());
-
-
-    bite->set_color(Color::DARK_GREEN_0);
-    mvaddch(Y, X-2, '>');
-
-
-    // Draw cursor for command line.
-
-    char cur_char = this->cmd[this->cmd_cur_x];
-    if(cur_char == 0) {
-        cur_char = 0x20;
+void Buffer::set_msg(const std::string& new_msg) {
+    // Clear previous msg.
+    for(int r = 0; r < m_msg.num_rows; r++) {
+        m_msg.data[r].clear();
     }
 
-    bite->set_color(Color::CMD_CURSOR);
-    mvaddch(Y, X + this->cmd_cur_x, cur_char);
+    m_msg.num_rows = 0;
 
-}*/
+    const int max_width = this->width - 4;
+    int current_width = 0;
+    for(size_t i = 0; i < new_msg.size(); i++) {
+        
+        m_msg.data[m_msg.num_rows].push_back(new_msg[i]);
+        current_width++;
+
+        if(current_width >= max_width) {
+            m_msg.num_rows++;
+            current_width = 0;
+
+            if(m_msg.num_rows >= MAX_MSG_ROWS) {
+                log_print(WARNING, "Got really long message, everything was not shown.");
+                m_msg.num_rows = MAX_MSG_ROWS-1;
+                std::string* last = &m_msg.data[m_msg.num_rows];
+                last->replace(last->size()-3, 3, "...");
+                break;
+            }
+        }
+    }
+
+    m_msg.num_rows++;
+    this->msg_visible = true;
+}
+        
+void Buffer::set_msg_title(const std::string& msg_title) {
+    m_msg.title = msg_title;
+}
+        
+void Buffer::set_msg_color(ColorT color) {
+    m_msg.color = color;
+}
 
 void Buffer::m_draw_message(Editor* bite) {
-    int Y = this->height;
-    int X = this->pos_x + 2;
-   
-    bite->set_color(Color::ORANGE);
-    mvaddstr(Y, X, this->msg.c_str());
+    int H = m_msg.num_rows;
+    int W = this->width - 2;
 
+    int Y = this->height - H - 1;
+    int X = this->pos_x + 1;
+
+    EDraw::window(bite, X, Y, W, H, "message", {{ m_msg.title, Color::MSG_TITLE }});
+
+    for(int iy = Y+1; iy <= Y+H; iy++) {
+        U::clear_part(X+1, iy, W);
+    }
+
+    bite->set_color(m_msg.color);
+    for(int i = 0; i < m_msg.num_rows; i++) {
+        mvaddstr(Y+i+1, X+1, m_msg.data[i].c_str());
+    }
 }
 
 void Buffer::draw(Editor* bite) {
@@ -105,7 +128,7 @@ void Buffer::draw(Editor* bite) {
 
     this->last_draw_base_x = base_x;
     this->last_draw_base_y = base_y;
-
+    this->last_draw_lndigits = lastln_digits;
 
     // Buffer window.
     //
@@ -166,9 +189,8 @@ void Buffer::draw(Editor* bite) {
     }
 
 
-    // Draw selected region.
     if(m_mode == BufferMode::SELECT) {
-        bite->set_color(Color::RED);
+        bite->set_color(Color::SELECT);
         this->selectreg_action(SelectRegAct::draw);
     }
     else 
@@ -176,7 +198,7 @@ void Buffer::draw(Editor* bite) {
         EDraw::cmdline(bite, this);
     }
 
-    if(!this->msg.empty()) {
+    if(this->msg_visible) {
         m_draw_message(bite);
     }
 
@@ -423,7 +445,7 @@ void Buffer::handle_backspace() {
 }
 
 void Buffer::set_mode(BufferMode new_mode) {
-
+    m_mode_prev = m_mode;
     if(new_mode == BufferMode::SELECT) {
         m_select = SelectReg(cursor);
     }
@@ -442,7 +464,11 @@ void Buffer::set_mode(BufferMode new_mode) {
 
     m_mode = new_mode;
 }
-   
+        
+void Buffer::set_previous_mode() {
+    set_mode(m_mode_prev);
+}
+
 void Buffer::selectreg_action(void(*act_callback)(Buffer*, const std::string&, Int64x2)) {
     if(this->get_mode() != BufferMode::SELECT) {
         log_print(WARNING, "Buffer mode is not SELECT but this function was called.");

@@ -38,6 +38,8 @@ struct StyleSettings {     // Buffer border style unicode.
     ColorT buf_modestr_color;
     ColorT cmdline_color;
     ColorT cmdline_indicator_color;
+    ColorT msg_info_color;
+    ColorT msg_error_color;
 };
 
 
@@ -111,6 +113,7 @@ class Editor {
 
         int m_color_pair_num;
         void m_init_all_colors();
+        void m_pair_colors(int color_num, int r, int g, int b, int bg_color_num);
         void m_init_color(int color_num, int r, int g, int b, int bg_color_num = Color::BACKGROUND);
         int  m_key_fromstr(const std::string& str);
 

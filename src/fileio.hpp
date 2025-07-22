@@ -6,9 +6,13 @@ class Buffer;
 
 namespace FileIO {
 
-    void save_buffer(Buffer* buf);
-    void read_to_buffer(Buffer* buf, const char* filename);
+    enum READ_OPT {
+        DONT_TRUNC_BUFFER,
+        TRUNC_BUFFER
+    };
 
+    void save_buffer(Buffer* buf);
+    void read_to_buffer(Buffer* buf, const char* filename, READ_OPT);
 
 
 };
