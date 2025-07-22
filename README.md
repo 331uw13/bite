@@ -1,4 +1,3 @@
 # Bite 
-## Terminal text editor
 
-Idea is to create code editor with plugin support.
+Idea is to create fully featured code editor which is efficient for workflow and has plugin support
