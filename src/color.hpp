@@ -2,10 +2,12 @@
 #define EDITOR_COLOR_HPP
 
 
+typedef int ColorT;
+
 
 namespace Color {
     static constexpr int NUM_DARK_SHADES = 2;
-    enum EditorColor : int {
+    enum EditorColor : ColorT {
         BACKGROUND = 0,
         WHITE,   DARK_WHITE_0,    DARK_WHITE_1,
         BEIGE,   DARK_BEIGE_0,    DARK_BEIGE_1,

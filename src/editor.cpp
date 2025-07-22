@@ -19,19 +19,34 @@ void Editor::init() {
     this->buf = add_buffer("Test Buffer");
 
     this->lua = luaL_newstate();
-    luaL_openlibs(this->lua);
 }
 
 void Editor::init_style() {
+    
+    StyleSettings* style = &this->settn.style;
 
-    this->settn.style.TL_corner_ch = U::get_cchar(0x250C);
-    this->settn.style.TR_corner_ch = U::get_cchar(0x2510);
-    this->settn.style.BL_corner_ch = U::get_cchar(0x2514);
-    this->settn.style.BR_corner_ch = U::get_cchar(0x2518);
-    this->settn.style.T_line_ch = U::get_cchar(0x2500);
-    this->settn.style.R_line_ch = U::get_cchar(0x2502);
-    this->settn.style.L_line_ch = U::get_cchar(0x2502);
-    this->settn.style.B_line_ch = U::get_cchar(0x2500);
+    style->TL_corner_ch = U::get_cchar(0x250C);
+    style->TR_corner_ch = U::get_cchar(0x2510);
+    style->BL_corner_ch = U::get_cchar(0x2514);
+    style->BR_corner_ch = U::get_cchar(0x2518);
+    style->T_line_ch = U::get_cchar(0x2500);
+    style->R_line_ch = U::get_cchar(0x2502);
+    style->L_line_ch = U::get_cchar(0x2502);
+    style->B_line_ch = U::get_cchar(0x2500);
+    style->UDR_connect_ch = U::get_cchar(0x251C);
+    style->UDL_connect_ch = U::get_cchar(0x2520);
+
+    style->win_infostr_prefix_ch = '[';
+    style->win_infostr_suffix_ch = ']';
+    style->cmdline_indicator_ch = '>';
+
+    
+    style->win_border_color         = Color::DARK_BEIGE_0;
+    style->win_infostr_affix_color  = Color::DARK_BEIGE_1;
+    style->win_name_color           = Color::BEIGE;
+    style->buf_modestr_color        = Color::DARK_PINK_0;
+    style->cmdline_color            = Color::GREEN;
+    style->cmdline_indicator_color  = Color::DARK_GREEN_0;
 
 }
 
@@ -230,9 +245,10 @@ void Editor::update_buffer_areas() {
 
 
 void Editor::add_lua_bindings() {
+    lua_register(this->lua, "print", LuaBind::print);
+    lua_register(this->lua, "p", LuaBind::print);
     lua_register(this->lua, "gotoln", LuaBind::gotoln);
     lua_register(this->lua, "buf_size", LuaBind::buf_size);
-
 }
 
 

@@ -1,4 +1,4 @@
-FLAGS = -std=c++20 -ggdb -Wall -Wextra -Wno-switch
+FLAGS = -std=c++20 -O2 -Wall -Wextra -Wno-switch
 CXX = g++
 
 TARGET_NAME = bite
@@ -6,7 +6,7 @@ TARGET_NAME = bite
 
 SRC = $(shell find ./src -type f -name *.cpp)
 
-LIBS = -lcursesw
+LIBS = -lcursesw -llua
 OBJS = $(SRC:.cpp=.o)
 
 all: $(TARGET_NAME)

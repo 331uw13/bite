@@ -6,6 +6,7 @@
 
 namespace LuaBind
 {
+    int print(lua_State* L);
     int gotoln(lua_State* L);
     int buf_size(lua_State* L);
 };

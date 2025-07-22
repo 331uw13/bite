@@ -1,7 +1,6 @@
 #ifndef EDITOR_HPP
 #define EDITOR_HPP
 
-#include <ncurses.h>
 
 #include <vector>
 #include <cstdint>
@@ -13,6 +12,7 @@
 #include "log.hpp"
 #include "color.hpp"
 #include "fileio.hpp"
+#include "editor_draw.hpp"
 
 
 
@@ -25,7 +25,21 @@ struct StyleSettings {     // Buffer border style unicode.
     cchar_t R_line_ch;
     cchar_t L_line_ch;
     cchar_t B_line_ch;
+    cchar_t UDR_connect_ch; // Up-Down Connect to Right
+    cchar_t UDL_connect_ch; // Up-Down Connect to Left
+
+    char win_infostr_prefix_ch;
+    char win_infostr_suffix_ch;
+    char cmdline_indicator_ch;
+
+    ColorT win_border_color;
+    ColorT win_infostr_affix_color; // Prefix and Suffix.
+    ColorT win_name_color;
+    ColorT buf_modestr_color;
+    ColorT cmdline_color;
+    ColorT cmdline_indicator_color;
 };
+
 
 
 struct Settings {

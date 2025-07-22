@@ -117,9 +117,9 @@ class Buffer {
 
         std::vector<Line> data;
         std::string name;
+        std::string msg; // Message.
         std::string cmd;
         int16_t     cmd_cur_x;
-
      
         // See 'selectreg_act.hpp' for more info about this:
         void selectreg_action(void(*act_callback)(Buffer* buf, const std::string&, Int64x2));
@@ -167,10 +167,8 @@ class Buffer {
 
         inline int m_max_row();
 
-        void m_draw_title_info(Editor* bite, int x, int y, const char* info, int color);
-        void m_draw_borders(Editor* bite, int base_x, int base_y);
-        void m_draw_command_line(Editor* bite);
-
+        //void m_draw_command_line(Editor* bite);
+        void m_draw_message(Editor* bite);
 
         // The screen buffer (scrnbuf) is responsible to
         // update lines which width is bigger than in previous update.

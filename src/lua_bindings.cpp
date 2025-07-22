@@ -5,6 +5,16 @@
 #include "util.hpp"
 
     
+int LuaBind::print(lua_State* L) {
+    Editor& bite = Editor::Instance();
+    const char* data = luaL_checkstring(L, 1);
+
+    bite.buf->msg = data;
+    log_print(INFO, "%s", data);
+
+    return 1;
+}
+
 int LuaBind::gotoln(lua_State* L) {
     Editor& bite = Editor::Instance();
     int line = luaL_checkinteger(L, 1);

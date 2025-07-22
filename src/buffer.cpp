@@ -19,7 +19,6 @@ static const char* BUFFER_MODES_STR[] = {
 Buffer::Buffer(const char* name) {
     this->cursor = Cursor();
     this->name = name;
-    this->cmd = "";
     this->cmd_cur_x = 0;
     this->scroll = 0;
     this->paddn_x = 2;
@@ -53,103 +52,13 @@ void Buffer::free_memory() {
     m_mem_freed = true;
 }
 
-void Buffer::m_draw_borders(Editor* bite, int base_x, int base_y) {
-    
-
-    bite->set_color(Color::DARK_CYAN_1);
-    // Top left corner.
-    mvadd_wch(base_y, base_x, &bite->settn.style.TL_corner_ch);
-    
-    // Top right corner.
-    mvadd_wch(base_y, base_x + (this->width)+1, &bite->settn.style.TR_corner_ch);
-    
-    // Bottom left corner.
-    mvadd_wch(base_y + this->height+1, base_x, &bite->settn.style.BL_corner_ch);
-    
-    // Bottom right corner.
-    mvadd_wch(base_y + this->height+1, base_x + (this->width)+1, &bite->settn.style.BR_corner_ch);
-  
-    // Top.
-    mvhline_set(
-            base_y,
-            base_x + 1,
-            &bite->settn.style.T_line_ch,
-            this->width
-            );
-
-    // Bottom.
-    mvhline_set(
-            base_y + this->height + 1,
-            base_x + 1,
-            &bite->settn.style.B_line_ch,
-            this->width
-            );
-   
-    // Left.
-    mvvline_set(
-            base_y+1,
-            base_x,
-            &bite->settn.style.L_line_ch,
-            this->height
-            );
-
-    // Right.
-    mvvline_set(
-            base_y+1,
-            base_x + this->width + 1,
-            &bite->settn.style.L_line_ch,
-            this->height
-            );
-
-
-    if(m_mode == BufferMode::COMMAND_INPUT) {
-        // Bottom.
-        mvhline_set(
-                base_y + this->height + CMDLINE_HEIGHT + 1,
-                base_x + 1,
-                &bite->settn.style.B_line_ch,
-                this->width
-                );
-           
-
-    }
-
-
-    // Draw buffer info.
-
-    int info_x = base_x + this->width - this->name.size() - 1;
-
-    m_draw_title_info(bite, info_x, this->pos_y, this->name.c_str(),
-            Color::DARK_CYAN_0);
-
-    if(m_mode != BufferMode::NULLMODE) {
-        char mode_str[16] = { 0 };
-        info_x -= get_mode_str(mode_str, 16) + 3;
-
-        m_draw_title_info(bite, info_x, this->pos_y, mode_str, Color::DARK_PINK_0);
-
-    }
-}
-        
-void Buffer::m_draw_title_info(Editor* bite, int x, int y, const char* info, int color) {
-    const size_t info_size = strlen(info);
-   
-    bite->set_color(Color::DARK_CYAN_1);
-
-    mvaddch(y, x, '[');
-    mvaddch(y, x + info_size+1, ']');
-
-    bite->set_color(color);
-    mvprintw(y, x+1, info);
-}
-
+/*        
 void Buffer::m_draw_command_line(Editor* bite) {
    
-    int Y = this->height + CMDLINE_HEIGHT;
-    int X = 3;
+    int Y = this->last_draw_base_y + this->height + CMDLINE_HEIGHT - 1;
+    int X = this->pos_x + 3;
 
-    move(Y, X);
-    clrtoeol();
+    U::clear_part(X, Y, CMDLINE_MAX+1);
 
     bite->set_color(Color::GREEN);
     mvaddstr(Y, X, this->cmd.c_str());
@@ -169,8 +78,16 @@ void Buffer::m_draw_command_line(Editor* bite) {
     bite->set_color(Color::CMD_CURSOR);
     mvaddch(Y, X + this->cmd_cur_x, cur_char);
 
-}
+}*/
 
+void Buffer::m_draw_message(Editor* bite) {
+    int Y = this->height;
+    int X = this->pos_x + 2;
+   
+    bite->set_color(Color::ORANGE);
+    mvaddstr(Y, X, this->msg.c_str());
+
+}
 
 void Buffer::draw(Editor* bite) {
     
@@ -189,10 +106,18 @@ void Buffer::draw(Editor* bite) {
     this->last_draw_base_x = base_x;
     this->last_draw_base_y = base_y;
 
-    m_draw_borders(bite, this->pos_x, this->pos_y);
+
+    // Buffer window.
+    //
+    char mode_str_buf[16] = { 0 };
+    this->get_mode_str(mode_str_buf, 16);
+    EDraw::window(bite, this->pos_x, this->pos_y, this->width, this->height, 
+            this->name, {{ mode_str_buf, bite->settn.style.buf_modestr_color }});
+
 
     bool update_all = (lastln_digits != m_prev_lastln_digits);
-    
+   
+
     // Draw Data.
 
     int y = 0;
@@ -220,9 +145,6 @@ void Buffer::draw(Editor* bite) {
         
 
         // Line number.
-        // Clear small part where the line number is.
-        // It will avoid making confusing looking numbers when scrolling up
-        // and the number of digits in the line number changes
         U::clear_part(this->pos_x+1, base_y+y, lastln_digits);
         bite->set_color(Color::DARK_WHITE_1);
         uint64_t ln_digits = U::count_digits(idx);
@@ -251,7 +173,11 @@ void Buffer::draw(Editor* bite) {
     }
     else 
     if(m_mode == BufferMode::COMMAND_INPUT) {
-        m_draw_command_line(bite);
+        EDraw::cmdline(bite, this);
+    }
+
+    if(!this->msg.empty()) {
+        m_draw_message(bite);
     }
 
     // Draw cursor.
@@ -284,8 +210,7 @@ size_t Buffer::get_mode_str(char* outbuf, size_t outbuf_size) {
 
 void Buffer::checkup_scrnbuf() {
     if((this->width < 0) || (this->height < 0)) {
-        fprintf(stderr, "%s: buffer size is not set.\n",
-                __func__);
+        log_print(ERROR, "buffer size is not set.\n");
         return;
     }
 
